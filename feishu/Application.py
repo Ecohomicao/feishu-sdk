@@ -38,7 +38,7 @@ class Bot(FeishuBase):
     MESSAGE_BUTTON_CONFIRM = True
     MESSAGE_NOTICE_NAME = '通知'
 
-    def __init__(self, app_id, app_secret, retry=None):
+    def __init__(self, app_id, app_secret, retry=None, verify=True):
 
         self.app_id = app_id
         self.app_secret = app_secret
@@ -52,7 +52,8 @@ class Bot(FeishuBase):
         )
 
         self.request = Request(
-            retry=retry
+            retry=retry,
+            verify=verify
         )
         # assert app_verification_token is None or isinstance(app_verification_token, str), app_verification_token
 
@@ -93,6 +94,31 @@ class Bot(FeishuBase):
             "msg_type": "text",
             "content": {
                 "text": text
+            }
+        }
+        return self.request.post(url, data=data)
+
+    @tenant_access_token
+    def __upload_img(self, image_path):
+        with open(image_path, 'rb') as f:
+            image = f.read()
+
+        url = 'https://open.feishu.cn/open-apis/image/v4/put/'
+        files={"image": image}
+        data = {"image_type": "message"}
+        resp = self.request.file_post(url, data, files)
+        return resp["data"]["image_key"]
+
+    @tenant_access_token
+    def send_img_message(self, user_open_id, image_path):
+        assert all([image_path]), 'At least one of "image_path" or "data" is not empty'
+        img_key = self.__upload_img(image_path)
+        url = "/message/v4/send/"
+        data = {
+            "open_id": user_open_id,
+            "msg_type": "image",
+            "content": {
+                "image_key": img_key
             }
         }
         return self.request.post(url, data=data)

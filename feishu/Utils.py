@@ -25,7 +25,7 @@ class Request(FeishuBase):
         self.port = 443
         self.protocol = "https"
         self.timeout = timeout
-        self.verify = kwargs.get("verify", True)
+        self.verify = kwargs.get("verify", False)
         self.session = requests.Session()
         self.headers = {
             "Content-Type": "application/json"
@@ -46,20 +46,35 @@ class Request(FeishuBase):
     def post(self, url, data=None):
         return self.response(url, data, 'post')
 
-    def response(self, url, data, method):
-        url = "%s%s" % (self.BASE_API_SERVER, url)
-        if sys.version_info.major == 2:
-            data = bytes(json.dumps(data)).encode(encoding='utf8')
+    def file_post(self, url, data, files):
+        return self.response(url, data, 'post', files)
+
+    def response(self, url, data, method, files=None):
+        if files is None:  # files情况下，data是不能转换为bytes的
+            url = "%s%s" % (self.BASE_API_SERVER, url)
+            if sys.version_info.major == 2:
+                data = bytes(json.dumps(data)).encode(encoding='utf8')
+            else:
+                data = bytes(json.dumps(data), encoding='utf8')
+
+            r = getattr(self.session, method)(url=url,
+                                              headers=self.headers,
+                                              data=data,
+                                              timeout=self.timeout,
+                                              verify=self.verify,
+                                              ).json()
         else:
-            data = bytes(json.dumps(data), encoding='utf8')
+            temp = self.headers
+            temp.pop("Content-Type")  # 此时的headers既包括Content-Type也有Authorization，所以把Content-Type去掉
+            r = requests.post(
+                url=url,
+                headers=temp,
+                files=files,
+                data=data,
+                stream=True,
+                verify=self.verify).json()
 
-        r = getattr(self.session, method)(url=url,
-                                          headers=self.headers,
-                                          data=data,
-                                          timeout=self.timeout,
-                                          ).json()
         status_code = r.get('code', -1)
-
         if status_code != 0:
             raise RequestException(status=status_code, data=r.get('msg'))
         logger.debug('request url:%s; response:%s' % (url, r))
