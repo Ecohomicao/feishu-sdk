@@ -110,12 +110,16 @@ class Bot(FeishuBase):
         return resp["data"]["image_key"]
 
     @tenant_access_token
-    def send_img_message(self, user_open_id, image_path):
+    def send_img_message(self, user_open_id, image_path, target):
+        """
+        发送图片消息
+        target::str, open_id、user_id 、email 、chat_id
+        """
         assert all([image_path]), 'At least one of "image_path" or "data" is not empty'
         img_key = self.__upload_img(image_path)
         url = "/message/v4/send/"
         data = {
-            "open_id": user_open_id,
+            target: user_open_id,
             "msg_type": "image",
             "content": {
                 "image_key": img_key
