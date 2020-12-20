@@ -86,6 +86,12 @@ class Bot(FeishuBase):
         return self.request.app_access_token
 
     @tenant_access_token
+    def get_group_list(self, page_size="100"):
+        url = "/chat/v4/list/"
+        data = {"page_size": page_size}
+        return self.request.post(url, data=data)
+
+    @tenant_access_token
     def send_user_message(self, user_open_id, text=None):
         assert all([text]), 'At least one of "text" or "data" is not empty'
         url = "/message/v4/send/"
