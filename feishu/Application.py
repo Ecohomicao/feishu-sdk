@@ -166,6 +166,17 @@ class Bot(FeishuBase):
         }
         return self.request.post(url, data=data)['data']
 
+    @app_access_token
+    def refresh_user_info(self, code):
+        url = "/authen/v1/refresh_access_token"
+        data = {
+            "app_access_token": self.request.app_access_token['app_access_token'],
+            "refresh_token": code,
+            "grant_type": "refresh_token"
+
+        }
+        return self.request.post(url, data=data)['data']
+
     @tenant_access_token
     def get_bot_info(self):
         url = "/bot/v3/info/"
